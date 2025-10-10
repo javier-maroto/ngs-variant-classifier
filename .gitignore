@@ -1,0 +1,14 @@
+*.ipynb
+*__pycache__
+*.tsv
+*.fa
+*.fa.fai
+*.dict
+logs
+results
+raw
+vdata
+*.html
+*.bam
+*.vcf
+*.txt

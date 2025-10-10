@@ -1,0 +1,14 @@
+# modified version of https://varlociraptor.github.io/varlociraptor-scenarios/scenarios/ffpe-artifact-handling/
+
+samples:
+  ffpetumor:
+    universe: "[0.0,1.0]"
+    resolution: 0.01
+
+expressions:
+  ffpe_subst: "C>T | G>A"
+
+events:
+  ffpe_artifact: "($ffpe_subst) & ffpetumor:]0.0,0.05["
+  somatic: "(($ffpe_subst) & ffpetumor:]0.05,1.0[) | (!($ffpe_subst) & ffpetumor:]0.0,1.0[)"
+  germline: "normal:0.5 | normal:1.0"

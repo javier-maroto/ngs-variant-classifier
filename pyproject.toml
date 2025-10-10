@@ -1,0 +1,31 @@
+[project]
+name = "ngs"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Javier Maroto"}
+]
+readme = "README.md"
+requires-python = ">=3.11,<4.0"
+dependencies = [
+    "pandas (>=2.3.2,<3.0.0)",
+    "ipykernel (>=6.30.1,<7.0.0)",
+    "scikit-learn (>=1.7.1,<2.0.0)",
+    "matplotlib (>=3.10.6,<4.0.0)",
+    "plotly (>=6.3.0,<7.0.0)",
+    "nbformat (>=5.10.4,<6.0.0)",
+    "tqdm (>=4.67.1,<5.0.0)",
+    "ipywidgets (>=8.1.7,<9.0.0)",
+    "pyarrow (>=21.0.0,<22.0.0)",
+    "arakawa (>=0.2.0,<0.3.0)",
+    "notebook (>=7.4.5,<8.0.0)",
+    "pandoc (>=2.4,<3.0)",
+    "seaborn (>=0.13.2,<0.14.0)",
+    "jupyter (>=1.1.1,<2.0.0)",
+    "pysam (>=0.23.3,<0.24.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
