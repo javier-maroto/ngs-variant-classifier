@@ -92,6 +92,8 @@ bash varlociraptor.sh ... | grep "SOMATIC" > somatic_calls.tsv
 
 - `PROB_SOMATIC`, `PROB_GERMLINE`, etc. are posterior probabilities output by Varlociraptor.
 - The column `pred` indicates the most likely class. If both `GERMLINE` and `SOMATIC` have similar high probabilities, it outputs `GERMLINE/SOMATIC` as the class.
+- The column `prob_variant` reflects the probability of the call being either germline or somatic.
+- `FFPE_ARTIFACT` reflects false variant calls due to to changes C>T and G>A with low allele frequency.
 - `AF_OBS_VARL` represents the expected allele frequency after adjusting the estimated value (`AF_VARL`) by the tumor cell fraction.
 - The scatter plot helps visualize whether the estimated allele frequencies align with observed AF values.
 
