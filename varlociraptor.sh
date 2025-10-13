@@ -66,8 +66,22 @@ else
   tumor_cell_quantity=1.0
 fi
 
+# VCF table
+(
+  echo -e "seqnames\tposition\tref\talt\tQUAL\tFILTER\tAF\tAO\tDP\tFAO\tFDP"
+  bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%QUAL\t%FILTER[\t%AF\t%AO\t%DP\t%FAO\t%FDP]\n' \
+    $vcf
+) > ${output_folder}/${id}/data/candidates_unnormalized.tsv
+
 # Fix invalid records
 bcftools norm -c s -m- -f $reference $vcf -Ov -o ${output_folder}/${id}/data/candidates_all.vcf > /dev/null
+
+# Intermediate table
+(
+  echo -e "seqnames\tposition\tref\talt\tQUAL\tFILTER\tAF\tAO\tDP\tFAO\tFDP"
+  bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%QUAL\t%FILTER[\t%AF\t%AO\t%DP\t%FAO\t%FDP]\n' \
+    ${output_folder}/${id}/data/candidates_all.vcf
+) > ${output_folder}/${id}/data/candidates_all.tsv
 
 # Filter records
 bcftools view -e 'FMT/AO==0' ${output_folder}/${id}/data/candidates_all.vcf -o ${output_folder}/${id}/data/candidates.vcf > /dev/null
@@ -169,4 +183,4 @@ if [[ "$scenario" == "ffpe" ]]; then
   ) > ${output_folder}/${id}/data/calls_filt_normal.tsv
 fi
 
-python preprocess.py --id $id --vcf $vcf --tumor_cell_quantity $tumor_cell_quantity --output_folder ${output_folder}
+python preprocess.py --id $id --tumor_cell_quantity $tumor_cell_quantity --output_folder ${output_folder}

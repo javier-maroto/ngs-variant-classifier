@@ -21,7 +21,8 @@ class Dataloader:
             'seqnames': 'CHROM', 'position': 'POS', 'ref': 'REF', 'alt': 'ALT',
             'AF': 'AF_VARL', 'DP': 'DP_VARL'
         })
-        # df_varlociraptor = df_varlociraptor.drop_duplicates()
+        df_varlociraptor['artifact_reason'] = df_varlociraptor.apply(
+            Dataloader.create_artifact_reason_column, axis=1)
         return df_varlociraptor
     
     def load_varlociraptor_normal(self, inpdir):
@@ -38,6 +39,7 @@ class Dataloader:
         df_vcf = df_vcf.rename(columns={
             'seqnames': 'CHROM', 'position': 'POS', 'ref': 'REF', 'alt': 'ALT'
         })
+        # df_vcf['AF'] = df_vcf['AO'] / df_vcf['DP']
         return df_vcf
 
     def create_pred_columns(self, df):
@@ -54,6 +56,51 @@ class Dataloader:
         df['prob_variant'] = df['PROB_SOMATIC'] + df['PROB_GERMLINE']
         return df
     
+    def create_artifact_reason_column(row):
+        active_biases = (
+            Dataloader.sb_bias(row) +
+            Dataloader.rob_bias(row) +
+            Dataloader.rpb_bias(row) +
+            Dataloader.scb_bias(row) +
+            Dataloader.he_bias(row) +
+            Dataloader.alb_bias(row)
+        )
+        return ';'.join(active_biases)
+        
+    def sb_bias(row):
+        if row['SB'] == '+':
+            return ['Forward strand bias']
+        elif row['SB'] == '-':
+            return ['Reverse strand bias']
+        return []
+    
+    def rob_bias(row):
+        if row['ROB'] == '>':
+            return ['F1R2 read orientation bias']
+        elif row['ROB'] == '<':
+            return ['F2R1 read orientation bias']
+        return []
+    
+    def rpb_bias(row):
+        if row['RPB'] == '^':
+            return ['Read position bias (systematic sequencing errors)']
+        return []
+    
+    def scb_bias(row):
+        if row['SCB'] == '$':
+            return ['Softclip bias (systematic alignment errors)']
+        return []
+        
+    def he_bias(row):
+        if row['HE'] == '*':
+            return ['Homopolymer error (systematic PCR amplification errors)']
+        return []
+    
+    def alb_bias(row):
+        if row['ALB'] == '*':
+            return ['Low MAPQ or major alternative alignment (XA tags)']
+        return []
+
 
 def create_scatter_plot_af(df):
     """
@@ -90,11 +137,6 @@ if __name__ == '__main__':
         help="Identifier for varlociraptor data to load"
     )
     parser.add_argument(
-        "--vcf",
-        required=True,
-        help="Identifier for varlociraptor data to load"
-    )
-    parser.add_argument(
         "--output_folder",
         required=True,
         help="Folder where all the outputs are saved"
@@ -111,8 +153,8 @@ if __name__ == '__main__':
     dl = Dataloader()
     df = dl.load_varlociraptor(inpdir)
     df_vcf = dl.load_vcf(inpdir)
-    df = df[dl.MERGE_COLS + ['pred', 'prob_variant'] + [col for col in df.columns if col.startswith('PROB_')] + ['AF_VARL', 'DP_VARL']]
-    df = df.merge(df_vcf[dl.MERGE_COLS + ['AF']], on=dl.MERGE_COLS)
+    df = df[dl.MERGE_COLS + ['pred', 'prob_variant', 'artifact_reason'] + [col for col in df.columns if col.startswith('PROB_')] + ['AF_VARL', 'DP_VARL', 'SAOBS', 'SROBS']]
+    df = df.merge(df_vcf[dl.MERGE_COLS + ['AF', 'AO', 'FAO', 'DP', 'FDP']], on=dl.MERGE_COLS)
     if os.path.exists(os.path.join(inpdir, "calls_filt_normal.tsv")):
         df = df.merge(dl.load_varlociraptor_normal(inpdir), on=dl.MERGE_COLS)
     else:
