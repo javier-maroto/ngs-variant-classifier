@@ -2,7 +2,7 @@
 
 A reproducible pipeline for classifying variants detected from **Ion Torrent amplicon sequencing data** using [Varlociraptor](https://varlociraptor.github.io/).
 
-This workflow estimates the probability of each variant being **somatic**, **germline**, **an artifact**, **an FFPE artifact**, or **absent**, taking into account the tumor cell fraction and sequencing characteristics of Ion Torrent data.
+This workflow estimates the probability of each variant call from Ion Torrent being **somatic**, **germline**, **an artifact**, **an FFPE artifact**, or **absent**, taking into account the tumor cell fraction and sequencing characteristics of Ion Torrent data.
 
 ---
 
