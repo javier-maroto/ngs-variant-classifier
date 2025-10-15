@@ -59,8 +59,9 @@ mkdir -p ${output_folder}/${id}/results
 
 # Create scenario file
 if [[ "$scenario" == "ffpe" ]]; then
-  normal_score=$(awk -v v="$tumor_cell_quantity" 'BEGIN{print 1-v}')
-  sed -r 's/^(\s*)(fraction\s*:\s*$)/\1fraction: '"$normal_score"'/' scenarios/scenario_ffpe.yaml > scenarios/scenario.yaml
+  normal_cell_quantity=$(awk -v t="$tumor_cell_quantity" 'BEGIN { print 1 - t }')
+  threshold_ffpe=$(awk -v q="$tumor_cell_quantity" 'BEGIN{v=0.05/q; if(v>1) v=1.0; print v}')
+  sed "s/XXXXX/${normal_cell_quantity}/g; s/YYYYY/${threshold_ffpe}/g" scenarios/scenario_ffpe.yaml > scenarios/scenario.yaml
 else
   cp scenarios/scenario_ffpe_no_cont.yaml scenarios/scenario.yaml
   tumor_cell_quantity=1.0

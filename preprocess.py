@@ -54,6 +54,7 @@ class Dataloader:
         class_labels = [col[5:] for col in prob_cols] + ['GERMLINE/SOMATIC']
         varlociraptor_label_mapping = {i: v for i, v in enumerate(class_labels)}
         preds = np.argmax(df[prob_cols], axis=1)
+        df['prob_pred'] = np.max(df[prob_cols], axis=1)
         df['pred'] = pd.Categorical(
             [varlociraptor_label_mapping[pred] for pred in preds],
             categories=class_labels
@@ -116,6 +117,30 @@ class Dataloader:
             return ['Low MAPQ or major alternative alignment (XA tags)']
         return []
 
+    def create_confidence_columns(df):
+        values = {
+            'VCF AF value mismatch with Varlociraptor estimation': (np.abs(df['AF'] - df['AF_OBS_VARL']) > 0.05) & (df['AF_OBS_VARL'] != 0.0),
+            'Absent with high AF': (df['pred'] == 'ABSENT') & (df['AF'] > 0.05),
+            'FFPE artifact with high AF': (df['pred'] == 'ABSENT') & (df['AF'] > 0.03),
+            'Somatic with low AF': (df['pred'] == 'SOMATIC') & (df['AF'] < 0.03),
+            'Low Varlociraptor probability (<90%)': (df['prob_pred'] < 0.9) & (df['prob_pred'] >= 0.8),
+            'Very low Varlociraptor probability (<80%)': (df['prob_pred'] < 0.8)
+        }
+        df['confidence'] = 5
+        df['low_confidence_reason'] = ''
+        for k,v in values.items():
+            penalty = 2 if k in ('Absent with high AF', 'Very low Varlociraptor probability (<80%)') else 1
+            df.loc[v, 'confidence'] -= penalty
+            df.loc[v, 'low_confidence_reason'] += f"{k};"
+        masks = [df.confidence <= x for x in [4,3,2,1]]
+        df['confidence'] = 'Very high'
+        df.loc[masks[0], 'confidence'] = 'High'
+        df.loc[masks[1], 'confidence'] = 'Medium'
+        df.loc[masks[2], 'confidence'] = 'Low'
+        df.loc[masks[3], 'confidence'] = 'Very low'
+        return df
+        
+
 def create_scatter_plot_af(df, af_col='AF'):
     """
     Creates a scatter plot of AF_OBS_VARL (Estimated) vs AF (Observed)
@@ -166,7 +191,7 @@ if __name__ == '__main__':
     dl = Dataloader()
     df = dl.load_varlociraptor(inpdir)
     df_vcf = dl.load_vcf(inpdir)
-    df = df[dl.MERGE_COLS + ['pred', 'prob_variant', 'artifact_reason'] + [col for col in df.columns if col.startswith('PROB_')] + ['AF_VARL', 'DP_VARL', 'SAOBS', 'SROBS', 'ratio_obs', 'ratio_strong_obs']]
+    df = df[dl.MERGE_COLS + ['pred', 'prob_pred', 'prob_variant', 'artifact_reason'] + [col for col in df.columns if col.startswith('PROB_')] + ['AF_VARL', 'DP_VARL', 'SAOBS', 'SROBS', 'ratio_obs', 'ratio_strong_obs']]
     df = df.merge(df_vcf[dl.MERGE_COLS + ['AF', 'AO', 'FAO', 'DP', 'FDP']], on=dl.MERGE_COLS)
     if os.path.exists(os.path.join(inpdir, "calls_filt_normal.tsv")):
         df = df.merge(dl.load_varlociraptor_normal(inpdir), on=dl.MERGE_COLS)
@@ -177,6 +202,8 @@ if __name__ == '__main__':
     df.loc[(df['pred'] == "GERMLINE") & (df['PROB_SOMATIC'] + 0.05 > df['PROB_GERMLINE']), 'pred'] = 'GERMLINE/SOMATIC'
     outdir = os.path.join(params.output_folder, params.id, "results")
 
+    df = Dataloader.create_confidence_columns(df)
+    
     fig = create_scatter_plot_af(df)
     n_higher_than_1_estimated_AF = len(df.loc[(df['AF_VARL'] > 0.95) & (df['AF'] > df['AF_OBS_VARL'] * 1.05) & (df['PROB_GERMLINE'] < 0.1)])
     
