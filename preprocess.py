@@ -54,12 +54,15 @@ class Dataloader:
         class_labels = [col[5:] for col in prob_cols] + ['GERMLINE/SOMATIC']
         varlociraptor_label_mapping = {i: v for i, v in enumerate(class_labels)}
         preds = np.argmax(df[prob_cols], axis=1)
-        df['prob_pred'] = np.max(df[prob_cols], axis=1)
         df['pred'] = pd.Categorical(
             [varlociraptor_label_mapping[pred] for pred in preds],
             categories=class_labels
         )
+        df.loc[(df['pred'] == "SOMATIC") & (df['PROB_GERMLINE'] + 0.05 > df['PROB_SOMATIC']), 'pred'] = 'GERMLINE/SOMATIC'
+        df.loc[(df['pred'] == "GERMLINE") & (df['PROB_SOMATIC'] + 0.05 > df['PROB_GERMLINE']), 'pred'] = 'GERMLINE/SOMATIC'
         df['prob_variant'] = df['PROB_SOMATIC'] + df['PROB_GERMLINE']
+        df['prob_pred'] = np.max(df[prob_cols], axis=1)
+        df.loc[df.pred == 'GERMLINE/SOMATIC', 'prob_pred'] = df.loc[df.pred == 'GERMLINE/SOMATIC', 'prob_variant']
         return df
     
     def count_varlociraptor_observations(row):
@@ -121,15 +124,15 @@ class Dataloader:
         values = {
             'VCF AF value mismatch with Varlociraptor estimation': (np.abs(df['AF'] - df['AF_OBS_VARL']) > 0.05) & (df['AF_OBS_VARL'] != 0.0),
             'Absent with high AF': (df['pred'] == 'ABSENT') & (df['AF'] > 0.05),
-            'FFPE artifact with high AF': (df['pred'] == 'ABSENT') & (df['AF'] > 0.03),
+            'FFPE artifact with high AF': (df['pred'] == 'FFPE_ARTIFACT') & (df['AF'] > 0.03),
             'Somatic with low AF': (df['pred'] == 'SOMATIC') & (df['AF'] < 0.03),
-            'Low Varlociraptor probability (<90%)': (df['prob_pred'] < 0.9) & (df['prob_pred'] >= 0.8),
-            'Very low Varlociraptor probability (<80%)': (df['prob_pred'] < 0.8)
+            'Low variant confidence (10-90%)': ((df['prob_variant'] <= 0.9) & (df['prob_variant'] > 0.8)) | (df['prob_variant'] < 0.2) & (df['prob_variant'] >= 0.1),
+            'Very low variant confidence (20-80%)': (df['prob_variant'] <= 0.8) & (df['prob_variant'] >= 0.2)
         }
         df['confidence'] = 5
         df['low_confidence_reason'] = ''
         for k,v in values.items():
-            penalty = 2 if k in ('Absent with high AF', 'Very low Varlociraptor probability (<80%)') else 1
+            penalty = 2 if k in ('Absent with high AF', 'Very low variant confidence (20-80%)') else 1
             df.loc[v, 'confidence'] -= penalty
             df.loc[v, 'low_confidence_reason'] += f"{k};"
         masks = [df.confidence <= x for x in [4,3,2,1]]
@@ -198,8 +201,6 @@ if __name__ == '__main__':
     else:
         df['AF_NORMAL_VARL'] = 0.0
     df['AF_OBS_VARL'] = df['AF_VARL'] * params.tumor_cell_quantity + df['AF_NORMAL_VARL'] * (1 - params.tumor_cell_quantity)
-    df.loc[(df['pred'] == "SOMATIC") & (df['PROB_GERMLINE'] + 0.05 > df['PROB_SOMATIC']), 'pred'] = 'GERMLINE/SOMATIC'
-    df.loc[(df['pred'] == "GERMLINE") & (df['PROB_SOMATIC'] + 0.05 > df['PROB_GERMLINE']), 'pred'] = 'GERMLINE/SOMATIC'
     outdir = os.path.join(params.output_folder, params.id, "results")
 
     df = Dataloader.create_confidence_columns(df)
