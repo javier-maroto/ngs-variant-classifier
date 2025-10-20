@@ -85,7 +85,7 @@ bcftools norm -c s -m- -f $reference $vcf -Ov -o ${output_folder}/${id}/data/can
 ) > ${output_folder}/${id}/data/candidates_all.tsv
 
 # Filter records
-bcftools view -e 'FMT/AO==0' ${output_folder}/${id}/data/candidates_all.vcf -o ${output_folder}/${id}/data/candidates.vcf > /dev/null
+bcftools view -e 'FMT/AO==0 || FMT/AF="."' ${output_folder}/${id}/data/candidates_all.vcf -o ${output_folder}/${id}/data/candidates.vcf > /dev/null
 
 # Convert to tsv
 (
