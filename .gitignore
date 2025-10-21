@@ -9,3 +9,5 @@
 *.vcf
 *.txt
 *.bam.bai
+
+!tests/output/v1/**
