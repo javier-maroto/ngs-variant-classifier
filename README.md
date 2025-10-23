@@ -98,7 +98,11 @@ bash varlociraptor.sh ... | grep "SOMATIC" > somatic_calls.tsv
 - `AF_OBS_VARL` represents the expected allele frequency after adjusting the estimated value (`AF_VARL`) by the tumor cell fraction and adding the estimated AF of the normal sample in case it is germline (`AF_NORMAL_VARL`).
 - `artifact_reason` provides a human-readable reason of why a call is classified as artifact
 - `confidence` quantifies how confident we are on the call predictions, from *Very high* (default) to *Very Low*. If not *Very high*, `low_confidence_reason` gives a human-readable reason of why is that so.
-- `SAOBS` and `SROBS` are the summary of simplified reads for the alt allele and anything else (respectively), and it is provided by default by Varlociraptor. `ratio_obs` and `ratio_strong_obs` provides the AF if we only counted these simplified reads, or only the strongly / very strongly supported reads.
+- `SAOBS` and `SROBS` are the summary of simplified reads for the alt allele and anything else (respectively), and it is provided by default by Varlociraptor. `ratio_obs` and `ratio_strong_obs` provides the AF if we only counted these simplified reads, or only the strongly / very strongly supported reads. These are the definitions for how strong the support of some reads (in `SAOBS` and `SROBS`) are:
+    - Very strong support (V/v) = More than 150 times more probable that it supports than not
+    - Strong support (S/s) = Between 20 and 150 times more probable that it supports than not
+    - Positive support (P/p) = Between 3 and 20 times more probable that it supports than not
+    - Barely support (B/b) = Between 1 and 3 times more probable that it supports than not
 - The scatter plot helps visualize whether the estimated allele frequencies align with observed AF values.
 
 A warning will be printed to `stderr` if the tumor cell content prior appears underestimated, based on high-AF variants.
