@@ -13,7 +13,8 @@ The pipeline:
 1. Normalizes and filters candidate variants from a provided VCF file.  
 2. Estimates alignment properties from the corresponding BAM file.  
 3. Splits and preprocesses candidates in parallel using `Varlociraptor`.  
-4. Calls variant probabilities under an **FFPE scenario** (with or without contamination modeling).  
+4. Calls variant probabilities under an **FFPE scenario** (with or without contamination modeling).
+   - It considers a call is an FFPE artifact if AF is lower than 5% and it is a C>T or G>A substitution
 5. Postprocesses the output with Python to:
    - Merge relevant fields into a clean TSV file.
    - Compute posterior probabilities and predicted classes.
@@ -35,7 +36,7 @@ output/
 ## Requirements
 
 * Install Python dependencies using poetry
-* Install Varlociraptor
+* Install varlociraptor, bcftools and rust-bio-tools
 
 ---
 
@@ -94,7 +95,10 @@ bash varlociraptor.sh ... | grep "SOMATIC" > somatic_calls.tsv
 - The column `pred` indicates the most likely class. If both `GERMLINE` and `SOMATIC` have similar high probabilities, it outputs `GERMLINE/SOMATIC` as the class.
 - The column `prob_variant` reflects the probability of the call being either germline or somatic.
 - `FFPE_ARTIFACT` reflects false variant calls due to to changes C>T and G>A with low allele frequency.
-- `AF_OBS_VARL` represents the expected allele frequency after adjusting the estimated value (`AF_VARL`) by the tumor cell fraction.
+- `AF_OBS_VARL` represents the expected allele frequency after adjusting the estimated value (`AF_VARL`) by the tumor cell fraction and adding the estimated AF of the normal sample in case it is germline (`AF_NORMAL_VARL`).
+- `artifact_reason` provides a human-readable reason of why a call is classified as artifact
+- `confidence` quantifies how confident we are on the call predictions, from *Very high* (default) to *Very Low*. If not *Very high*, `low_confidence_reason` gives a human-readable reason of why is that so.
+- `SAOBS` and `SROBS` are the summary of simplified reads for the alt allele and anything else (respectively), and it is provided by default by Varlociraptor. `ratio_obs` and `ratio_strong_obs` provides the AF if we only counted these simplified reads, or only the strongly / very strongly supported reads.
 - The scatter plot helps visualize whether the estimated allele frequencies align with observed AF values.
 
 A warning will be printed to `stderr` if the tumor cell content prior appears underestimated, based on high-AF variants.
